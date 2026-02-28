@@ -398,9 +398,18 @@ canvas {
 <canvas id="particles"></canvas>
 
 <div class="header" id="header">
-  <div class="title-wrap">
-    <div class="title">SNAKE</div>
-    <div class="subtitle" id="level-label">LV.01 // STAGE 1</div>
+  <div class="header-left">
+    <div class="title-wrap">
+      <div class="title">SNAKE</div>
+      <div class="subtitle" id="level-label">LV.01 // STAGE 1</div>
+    </div>
+    <button id="pause-btn">
+      <svg id="pause-icon" viewBox="0 0 24 24">
+        <rect x="6" y="5" width="4" height="14" rx="1"/>
+        <rect x="14" y="5" width="4" height="14" rx="1"/>
+      </svg>
+      <span class="pause-label" id="pause-label">II</span>
+    </button>
   </div>
   <div class="hud-right">
     <div class="hud-row">
@@ -421,13 +430,6 @@ canvas {
       </div>
     </div>
   </div>
-  <button id="pause-btn">
-    <svg id="pause-icon" viewBox="0 0 24 24">
-      <rect x="6" y="5" width="4" height="14" rx="1"/>
-      <rect x="14" y="5" width="4" height="14" rx="1"/>
-    </svg>
-    <span class="pause-label" id="pause-label">II</span>
-  </button>
 </div>
 
 <div class="canvas-wrap" id="canvas-wrap">
@@ -1625,19 +1627,65 @@ document.addEventListener('keydown', e => {
 
 // ── D-pad removed — swipe + keyboard only ────────────────────────────
 
-// ── Swipe ─────────────────────────────────────────────────────────────
-let tx=0,ty=0;
-canvas.addEventListener('touchstart',e=>{e.preventDefault();tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:false});
-canvas.addEventListener('touchend',e=>{
+// ── Touch controls: swipe + tap-relative-to-snake-head ───────────────
+let tx=0, ty=0, tMoved=false;
+
+canvas.addEventListener('touchstart', e=>{
   e.preventDefault();
-  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
-  if(Math.abs(dx)<10&&Math.abs(dy)<10)return;
-  resumeAC();
-  const dirs={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
-  applyDir(Math.abs(dx)>Math.abs(dy)?(dx>0?dirs.right:dirs.left):(dy>0?dirs.down:dirs.up));
+  tx = e.touches[0].clientX;
+  ty = e.touches[0].clientY;
+  tMoved = false;
 },{passive:false});
 
-document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+canvas.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  // mark as swipe if finger moved enough
+  const dx = e.touches[0].clientX - tx;
+  const dy = e.touches[0].clientY - ty;
+  if (Math.abs(dx) > 8 || Math.abs(dy) > 8) tMoved = true;
+},{passive:false});
+
+canvas.addEventListener('touchend', e=>{
+  e.preventDefault();
+  resumeAC();
+  const ex = e.changedTouches[0].clientX;
+  const ey = e.changedTouches[0].clientY;
+  const dx = ex - tx, dy = ey - ty;
+
+  if (tMoved || Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+    // ── Swipe gesture ──────────────────────────────────────────────
+    applyDir(Math.abs(dx) > Math.abs(dy)
+      ? (dx > 0 ? {x:1,y:0} : {x:-1,y:0})
+      : (dy > 0 ? {x:0,y:1} : {x:0,y:-1}));
+  } else {
+    // ── Tap: determine direction relative to snake head on canvas ──
+    if (!alive || paused || snake.length === 0) return;
+    const rect = canvas.getBoundingClientRect();
+    // tap position in canvas coordinates
+    const tapX = (ex - rect.left) * (canvas.width  / rect.width);
+    const tapY = (ey - rect.top)  * (canvas.height / rect.height);
+    // snake head position in canvas coordinates
+    const headX = snake[0].x * CELL + CELL / 2;
+    const headY = snake[0].y * CELL + CELL / 2;
+    const relX = tapX - headX;
+    const relY = tapY - headY;
+    // choose axis with larger offset, then pick direction
+    // but never allow reversing current direction
+    let newDir;
+    if (Math.abs(relX) >= Math.abs(relY)) {
+      newDir = relX > 0 ? {x:1,y:0} : {x:-1,y:0};
+    } else {
+      newDir = relY > 0 ? {x:0,y:1} : {x:0,y:-1};
+    }
+    // ignore if it would reverse (applyDir already blocks 180, but be explicit)
+    if (newDir.x === -dir.x && newDir.y === -dir.y) return;
+    // ignore if already going that direction
+    if (newDir.x === dir.x && newDir.y === dir.y) return;
+    applyDir(newDir);
+  }
+},{passive:false});
+
+document.addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
 
 // ── Init ──────────────────────────────────────────────────────────────
 // Initialize with level 1 defaults (won't render until start clicked)
