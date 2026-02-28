@@ -290,53 +290,113 @@ canvas {
   box-shadow: 0 0 24px rgba(0,255,231,0.5), inset 0 0 20px rgba(0,255,231,0.1);
 }
 
-/* ── D-pad ── */
+/* ── D-pad — 5-zone layout maximized in 220×220 ── */
+/*
+  Strategy: each arrow covers its full triangular/trapezoidal zone.
+  We use clip-path on large square buttons so each zone is a
+  generous tap target that reaches right to the edges.
+  Total grid is 220×220. Center circle is 80px diameter.
+  Each arrow btn is 220×220 absolutely positioned and clipped
+  to its directional wedge.
+*/
 .dpad-wrap {
   position: fixed;
-  bottom: max(env(safe-area-inset-bottom,0px), 10px);
-  left: 0; right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  padding: 0 16px;
+  bottom: max(env(safe-area-inset-bottom,0px), 6px);
+  left: 50%; transform: translateX(-50%);
   pointer-events: none;
   z-index: 50;
+  width: 220px; height: 220px;
 }
 
-.dpad-left-side, .dpad-right-side {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.dpad {
+  position: relative;
+  width: 220px; height: 220px;
   pointer-events: all;
-}
-
-.dpad-right-side {
-  flex-direction: row;
-  align-items: flex-end;
+  /* Outer rounded border for the whole cluster */
+  border-radius: 32px;
+  overflow: hidden;
+  background: rgba(0,255,231,0.03);
+  border: 1px solid rgba(0,255,231,0.12);
 }
 
 .dpad-btn {
-  width: 72px; height: 72px;
-  background: rgba(0,255,231,0.05);
-  border: 1px solid rgba(0,255,231,0.22);
+  position: absolute;
   display: flex; justify-content: center; align-items: center;
   cursor: pointer;
   user-select: none; -webkit-user-select: none;
-  border-radius: 16px;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.1s, box-shadow 0.1s, border-color 0.1s;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-  flex-shrink: 0;
+  transition: background 0.07s;
+  background: transparent;
+  border: none;
 }
 
-.dpad-btn:active, .dpad-btn.pressed {
-  background: rgba(0,255,231,0.16);
-  border-color: rgba(0,255,231,0.75);
-  box-shadow: 0 0 20px rgba(0,255,231,0.45), inset 0 0 10px rgba(0,255,231,0.1);
+/* Arrow buttons fill the whole 220×220 and are clipped to their wedge */
+.dpad-up, .dpad-down, .dpad-left, .dpad-right {
+  width: 220px; height: 220px;
+  top: 0; left: 0;
+  /* center icon within the wedge */
 }
 
-.dpad-btn svg { width: 30px; height: 30px; fill: var(--neon-cyan); opacity: 0.75; filter: drop-shadow(0 0 5px var(--neon-cyan)); }
+/* wedge clip-paths — cut diagonals meeting at center (110,110) */
+/* UP: top trapezoid */
+.dpad-up    { clip-path: polygon(0 0, 220px 0, 165px 75px, 55px 75px); }
+/* DOWN: bottom trapezoid */
+.dpad-down  { clip-path: polygon(55px 145px, 165px 145px, 220px 220px, 0 220px); }
+/* LEFT: left trapezoid */
+.dpad-left  { clip-path: polygon(0 0, 75px 55px, 75px 165px, 0 220px); }
+/* RIGHT: right trapezoid */
+.dpad-right { clip-path: polygon(145px 55px, 220px 0, 220px 220px, 145px 165px); }
+
+/* Icon offsets within each wedge */
+.dpad-up    svg { width: 44px; height: 44px; margin-top: 14px; }
+.dpad-down  svg { width: 44px; height: 44px; margin-top: 136px; }
+.dpad-left  svg { width: 44px; height: 44px; margin-left: 14px; }
+.dpad-right svg { width: 44px; height: 44px; margin-left: 136px; }
+
+.dpad-btn svg { fill: var(--neon-cyan); opacity: 0.78; filter: drop-shadow(0 0 6px var(--neon-cyan)); }
+
+/* Pressed state — bright fill within clipped zone */
+.dpad-up:active,    .dpad-up.pressed    { background: rgba(0,255,231,0.18); }
+.dpad-down:active,  .dpad-down.pressed  { background: rgba(0,255,231,0.18); }
+.dpad-left:active,  .dpad-left.pressed  { background: rgba(0,255,231,0.18); }
+.dpad-right:active, .dpad-right.pressed { background: rgba(0,255,231,0.18); }
 .dpad-btn:active svg, .dpad-btn.pressed svg { opacity: 1; }
+
+/* Dividing lines between wedges */
+.dpad::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 0.5px), rgba(0,255,231,0.18) calc(50% - 0.5px), rgba(0,255,231,0.18) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(to bottom left,  transparent calc(50% - 0.5px), rgba(0,255,231,0.18) calc(50% - 0.5px), rgba(0,255,231,0.18) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  pointer-events: none;
+  z-index: 3;
+  border-radius: 32px;
+}
+
+/* CENTER PAUSE — 80px circle over the intersection, z above wedges */
+.dpad-center-btn {
+  top: 70px; left: 70px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: rgba(10,10,20,0.92);
+  border: 2px solid rgba(255,230,0,0.4);
+  flex-direction: column; gap: 1px;
+  z-index: 4;
+  box-shadow: 0 0 0 3px rgba(0,255,231,0.06), inset 0 0 14px rgba(0,0,0,0.7);
+}
+.dpad-center-btn:active, .dpad-center-btn.pressed {
+  background: rgba(255,230,0,0.18);
+  border-color: rgba(255,230,0,1);
+  box-shadow: 0 0 22px rgba(255,230,0,0.55), inset 0 0 10px rgba(255,230,0,0.1);
+}
+.dpad-center-btn svg { width: 28px; height: 28px; fill: var(--neon-yellow); opacity: 0.92; filter: drop-shadow(0 0 5px var(--neon-yellow)); }
+.dpad-center-btn:active svg, .dpad-center-btn.pressed svg { opacity: 1; }
+.pause-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 6px; letter-spacing: 1.5px;
+  color: var(--neon-yellow); opacity: 0.7;
+}
 
 /* ── Bottom status bar ── */
 .status-bar {
@@ -365,7 +425,7 @@ canvas {
 /* ── Power-up status bars ── */
 #powerup-bar {
   position: fixed;
-  bottom: max(env(safe-area-inset-bottom,0px), 10px);
+  bottom: calc(max(env(safe-area-inset-bottom,0px), 8px) + 220px);
   left: 50%; transform: translateX(-50%);
   display: flex; gap: 8px; align-items: center;
   z-index: 60; pointer-events: none;
@@ -499,23 +559,33 @@ canvas {
 </div>
 
 <div class="dpad-wrap">
-  <!-- Left side: Up / Down -->
-  <div class="dpad-left-side">
-    <div class="dpad-btn" data-dir="up">
-      <svg viewBox="0 0 24 24"><path d="M12 5l-7 7h14z"/></svg>
+  <div class="dpad">
+    <!-- Row 1: empty, up, empty -->
+    <div></div>
+    <div class="dpad-btn dpad-up" data-dir="up">
+      <svg viewBox="0 0 24 24"><path d="M12 4l-8 9h16z"/></svg>
     </div>
-    <div class="dpad-btn" data-dir="down">
-      <svg viewBox="0 0 24 24"><path d="M12 19l7-7H5z"/></svg>
+    <div></div>
+    <!-- Row 2: left, pause, right -->
+    <div class="dpad-btn dpad-left" data-dir="left">
+      <svg viewBox="0 0 24 24"><path d="M4 12l9-8v16z"/></svg>
     </div>
-  </div>
-  <!-- Right side: Left / Right -->
-  <div class="dpad-right-side">
-    <div class="dpad-btn" data-dir="left">
-      <svg viewBox="0 0 24 24"><path d="M5 12l7-7v14z"/></svg>
+    <div class="dpad-btn dpad-center-btn" id="pause-btn">
+      <svg id="pause-icon" viewBox="0 0 24 24">
+        <rect x="6" y="5" width="4" height="14" rx="1"/>
+        <rect x="14" y="5" width="4" height="14" rx="1"/>
+      </svg>
+      <span class="pause-label" id="pause-label">PAUSE</span>
     </div>
-    <div class="dpad-btn" data-dir="right">
-      <svg viewBox="0 0 24 24"><path d="M19 12l-7 7V5z"/></svg>
+    <div class="dpad-btn dpad-right" data-dir="right">
+      <svg viewBox="0 0 24 24"><path d="M20 12l-9 8V4z"/></svg>
     </div>
+    <!-- Row 3: empty, down, empty -->
+    <div></div>
+    <div class="dpad-btn dpad-down" data-dir="down">
+      <svg viewBox="0 0 24 24"><path d="M12 20l8-9H4z"/></svg>
+    </div>
+    <div></div>
   </div>
 </div>
 
@@ -1128,7 +1198,7 @@ function spawnFoods() {
 }
 
 function applyDir(d) {
-  if (!alive) return;
+  if (!alive || paused) return;
   if (d.x===-dir.x && d.y===-dir.y) return;
   nextDir = d;
 }
@@ -1582,6 +1652,8 @@ function die() {
 
 function startGame(lvlIdx, resetLives) {
   resumeAC();
+  paused = false;
+  setPauseIcon(false);
   overlay.style.display='none';
   levelClear.classList.remove('show');
   cancelAnimationFrame(raf);
@@ -1602,15 +1674,76 @@ lcNextBtn.addEventListener('click', ()=>{
 
 // ── Keyboard ──────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'Escape') return; // handled by pause listener
   const map = {ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0}};
   const d = map[e.key]; if (!d) return;
   e.preventDefault(); applyDir(d);
 });
 
+// ── Pause ─────────────────────────────────────────────────────────────
+let paused = false;
+const pauseBtn   = document.getElementById('pause-btn');
+const pauseIcon  = document.getElementById('pause-icon');
+const pauseLabel = document.getElementById('pause-label');
+
+// pause icon SVGs
+const SVG_PAUSE = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+const SVG_PLAY  = '<path d="M7 4l13 8-13 8V4z"/>';
+
+function setPauseIcon(isPaused) {
+  pauseIcon.innerHTML = isPaused ? SVG_PLAY : SVG_PAUSE;
+  pauseLabel.textContent = isPaused ? 'PLAY' : 'PAUSE';
+}
+
+function togglePause() {
+  if (!alive) return;
+  resumeAC();
+  paused = !paused;
+  setPauseIcon(paused);
+  if (paused) {
+    clearInterval(gameLoop);
+    cancelAnimationFrame(raf);
+    stopBGM();
+    drawPauseOverlay();
+  } else {
+    startBGM(currentLevel);
+    gameLoop = setInterval(update, LEVELS[currentLevel].speed);
+    raf = requestAnimationFrame(gameRaf);
+  }
+}
+
+function drawPauseOverlay() {
+  const W = canvas.width, H = canvas.height;
+  ctx.save();
+  ctx.fillStyle = 'rgba(3,8,16,0.75)';
+  ctx.fillRect(0,0,W,H);
+  ctx.font = '900 22px Orbitron, monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'var(--neon-yellow, #ffe600)';
+  ctx.shadowColor = '#ffe600'; ctx.shadowBlur = 18;
+  ctx.fillText('// PAUSED', W/2, H/2 - 14);
+  ctx.shadowBlur = 0;
+  ctx.font = '10px Orbitron, monospace';
+  ctx.fillStyle = 'rgba(0,255,231,0.5)';
+  ctx.fillText('TAP ▶ TO CONTINUE', W/2, H/2 + 18);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
+
+pauseBtn.addEventListener('touchstart', e=>{e.preventDefault(); pauseBtn.classList.add('pressed'); togglePause();},{passive:false});
+pauseBtn.addEventListener('touchend',   e=>{e.preventDefault(); pauseBtn.classList.remove('pressed');},{passive:false});
+pauseBtn.addEventListener('mousedown', ()=>{pauseBtn.classList.add('pressed'); togglePause();});
+pauseBtn.addEventListener('mouseup',   ()=>pauseBtn.classList.remove('pressed'));
+
+// Space key to pause
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'Escape') { e.preventDefault(); togglePause(); }
+});
+
 // ── D-pad ─────────────────────────────────────────────────────────────
 const DMAP = {up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
-document.querySelectorAll('.dpad-btn').forEach(btn => {
-  const press   = () => { resumeAC(); applyDir(DMAP[btn.dataset.dir]); btn.classList.add('pressed'); };
+document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn => {
+  const press   = () => { resumeAC(); if(!paused) applyDir(DMAP[btn.dataset.dir]); btn.classList.add('pressed'); };
   const release = () => btn.classList.remove('pressed');
   btn.addEventListener('touchstart', e=>{e.preventDefault();press();},{passive:false});
   btn.addEventListener('touchend',   e=>{e.preventDefault();release();},{passive:false});
