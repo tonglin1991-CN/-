@@ -288,36 +288,37 @@ canvas {
   box-shadow: 0 0 24px rgba(0,255,231,0.5), inset 0 0 20px rgba(0,255,231,0.1);
 }
 
-/* ── Pause button — fixed top-right (inside header zone) ── */
+/* ── Pause button — fixed top-left corner ── */
 #pause-btn {
   position: fixed;
-  top: max(env(safe-area-inset-top,0px), 6px);
-  right: 12px;
-  width: 48px; height: 48px;
+  top: max(env(safe-area-inset-top,0px), 8px);
+  left: 10px;
+  width: 40px; height: 40px;
   border-radius: 50%;
-  background: rgba(10,10,20,0.75);
-  border: 1.5px solid rgba(255,230,0,0.5);
+  background: rgba(10,10,20,0.85);
+  border: 1.5px solid rgba(255,230,0,0.6);
   display: flex; flex-direction: column;
   justify-content: center; align-items: center; gap: 1px;
   cursor: pointer;
   user-select: none; -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  z-index: 25;
-  box-shadow: 0 0 12px rgba(255,230,0,0.2), inset 0 0 8px rgba(0,0,0,0.6);
+  z-index: 80;
+  box-shadow: 0 0 12px rgba(255,230,0,0.25), inset 0 0 8px rgba(0,0,0,0.5);
   transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
 #pause-btn:active, #pause-btn.pressed {
-  background: rgba(255,230,0,0.2);
+  background: rgba(255,230,0,0.22);
   border-color: rgba(255,230,0,1);
-  box-shadow: 0 0 20px rgba(255,230,0,0.6);
+  box-shadow: 0 0 22px rgba(255,230,0,0.65);
 }
-#pause-btn svg { width: 20px; height: 20px; fill: var(--neon-yellow); opacity: 0.9; filter: drop-shadow(0 0 4px var(--neon-yellow)); }
+#pause-btn svg { width: 16px; height: 16px; fill: var(--neon-yellow); opacity: 0.92; filter: drop-shadow(0 0 5px var(--neon-yellow)); }
 #pause-btn:active svg { opacity: 1; }
 .pause-label {
   font-family: 'Orbitron', sans-serif;
-  font-size: 6px; letter-spacing: 1px;
+  font-size: 5px; letter-spacing: 1px;
   color: var(--neon-yellow); opacity: 0.7;
 }
+.header-left { display: flex; align-items: center; }
 
 /* status bar removed */
 
@@ -354,6 +355,55 @@ canvas {
 }
 #pu-ghost .pu-timer-fill { background: #64c8ff; box-shadow: 0 0 6px #64c8ff; }
 #pu-invincible .pu-timer-fill { background: #ffd700; box-shadow: 0 0 6px #ffd700; }
+
+/* ── D-pad ── */
+#dpad-wrap {
+  position: fixed;
+  bottom: max(env(safe-area-inset-bottom,0px), 2px);
+  left: 0; right: 0;
+  z-index: 50;
+  pointer-events: none;
+  /* height set by JS */
+}
+#dpad {
+  position: relative;
+  margin: 0 auto;
+  pointer-events: all;
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgba(0,255,231,0.025);
+  border: 1px solid rgba(0,255,231,0.12);
+  /* width/height set by JS */
+}
+.dp-btn {
+  position: absolute;
+  top: 0; left: 0;
+  cursor: pointer;
+  user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+  border: none;
+  transition: background 0.06s;
+  /* width/height/clip-path set by JS */
+}
+.dp-btn svg {
+  position: absolute;
+  fill: var(--neon-cyan);
+  opacity: 0.85;
+  filter: drop-shadow(0 0 6px var(--neon-cyan));
+  pointer-events: none;
+  /* size/position set by JS */
+}
+.dp-btn:active svg, .dp-btn.pressed svg { opacity: 1; }
+.dp-btn:active, .dp-btn.pressed { background: rgba(0,255,231,0.18); }
+#dpad::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 0.7px), rgba(0,255,231,0.22) calc(50% - 0.7px), rgba(0,255,231,0.22) calc(50% + 0.7px), transparent calc(50% + 0.7px)),
+    linear-gradient(to bottom left,  transparent calc(50% - 0.7px), rgba(0,255,231,0.22) calc(50% - 0.7px), rgba(0,255,231,0.22) calc(50% + 0.7px), transparent calc(50% + 0.7px));
+  pointer-events: none; z-index: 3;
+}
 
 /* ── Particle canvas ── */
 #particles {
@@ -398,18 +448,9 @@ canvas {
 <canvas id="particles"></canvas>
 
 <div class="header" id="header">
-  <div class="header-left">
-    <div class="title-wrap">
-      <div class="title">SNAKE</div>
-      <div class="subtitle" id="level-label">LV.01 // STAGE 1</div>
-    </div>
-    <button id="pause-btn">
-      <svg id="pause-icon" viewBox="0 0 24 24">
-        <rect x="6" y="5" width="4" height="14" rx="1"/>
-        <rect x="14" y="5" width="4" height="14" rx="1"/>
-      </svg>
-      <span class="pause-label" id="pause-label">II</span>
-    </button>
+  <div class="title-wrap">
+    <div class="title">SNAKE</div>
+    <div class="subtitle" id="level-label">LV.01 // STAGE 1</div>
   </div>
   <div class="hud-right">
     <div class="hud-row">
@@ -431,6 +472,14 @@ canvas {
     </div>
   </div>
 </div>
+
+<button id="pause-btn">
+  <svg id="pause-icon" viewBox="0 0 24 24">
+    <rect x="6" y="5" width="4" height="14" rx="1"/>
+    <rect x="14" y="5" width="4" height="14" rx="1"/>
+  </svg>
+  <span class="pause-label" id="pause-label">II</span>
+</button>
 
 <div class="canvas-wrap" id="canvas-wrap">
   <div class="corner-bl"></div>
@@ -514,24 +563,71 @@ const CELL = 20;
 let COLS, ROWS;
 
 function resizeCanvas() {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
   const headerH = headerEl.getBoundingClientRect().height || 52;
-  const safeBottom = parseInt(
-    getComputedStyle(document.documentElement)
-      .getPropertyValue('env(safe-area-inset-bottom)') || '0'
+  // safe area bottom (iPhone notch etc)
+  const safeB = parseInt(
+    getComputedStyle(document.documentElement).getPropertyValue('padding-bottom') || 0
   ) || 0;
-  const bottomPad = Math.max(safeBottom, 6);
-  const availH = window.innerHeight - headerH - bottomPad;
-  const availW = window.innerWidth;
-  const maxSide = Math.min(availW, availH, 900);
-  const cells = Math.floor(maxSide / CELL);
-  const size  = cells * CELL;
+  const bottomGap = Math.max(safeB, 2);
+
+  // ── D-pad: square, fills full screen width up to 320px ──
+  const dpadSize = Math.min(W, 320);
+  const dpadWrap = document.getElementById('dpad-wrap');
+  const dpadEl   = document.getElementById('dpad');
+  dpadEl.style.width  = dpadSize + 'px';
+  dpadEl.style.height = dpadSize + 'px';
+  dpadWrap.style.height = (dpadSize + bottomGap) + 'px';
+
+  // Wedge clip-paths centred in the square
+  const S = dpadSize;
+  const cx = S/2, cy = S/2;
+  const inset = S * 0.30; // inner trapezoid edge distance from centre
+  const svgSz = Math.round(S * 0.19);
+  const wedges = {
+    'dp-up':    {
+      clip:`polygon(0 0,${S}px 0,${cx+inset}px ${cy-inset}px,${cx-inset}px ${cy-inset}px)`,
+      sx: cx - svgSz/2, sy: cy*0.28
+    },
+    'dp-down':  {
+      clip:`polygon(${cx-inset}px ${cy+inset}px,${cx+inset}px ${cy+inset}px,${S}px ${S}px,0 ${S}px)`,
+      sx: cx - svgSz/2, sy: cy + cy*0.53
+    },
+    'dp-left':  {
+      clip:`polygon(0 0,${cx-inset}px ${cy-inset}px,${cx-inset}px ${cy+inset}px,0 ${S}px)`,
+      sx: cx*0.22, sy: cy - svgSz/2
+    },
+    'dp-right': {
+      clip:`polygon(${cx+inset}px ${cy-inset}px,${S}px 0,${S}px ${S}px,${cx+inset}px ${cy+inset}px)`,
+      sx: cx + cx*0.61, sy: cy - svgSz/2
+    },
+  };
+  Object.entries(wedges).forEach(([id, w]) => {
+    const btn = document.getElementById(id);
+    btn.style.width      = S + 'px';
+    btn.style.height     = S + 'px';
+    btn.style.clipPath   = w.clip;
+    const svg = btn.querySelector('svg');
+    svg.style.width  = svgSz + 'px';
+    svg.style.height = svgSz + 'px';
+    svg.style.left   = w.sx + 'px';
+    svg.style.top    = w.sy + 'px';
+  });
+
+  // ── Canvas: fill space between header and dpad ──
+  const dpadH    = dpadSize + bottomGap;
+  const availH   = H - headerH - dpadH;
+  const maxSide  = Math.min(W, availH, 900);
+  const cells    = Math.floor(maxSide / CELL);
+  const size     = cells * CELL;
   COLS = cells; ROWS = cells;
   canvas.width  = size; canvas.height = size;
   canvas.style.width  = size + 'px';
   canvas.style.height = size + 'px';
   document.getElementById('overlay').style.cssText = `width:${size}px;height:${size}px`;
-  // Position canvas-wrap: start right below header, centered horizontally
   const canvasWrap = document.getElementById('canvas-wrap');
+  // vertically centre in available space
   const topPos = headerH + Math.max(0, Math.floor((availH - size) / 2));
   canvasWrap.style.top = topPos + 'px';
 }
@@ -766,35 +862,40 @@ const SNAKE_TIERS = [
     blur:   28,
     special: false,
   },
-  { // 100+: GOLDEN BOA — golden python 🐍
+  { // 100+: GOLDEN BOA 🐍 — ultra spectacular
     name: 'GOLDEN BOA',
-    head:   ()=>'#ffd700',
+    head:   ()=>{
+      // shimmering gold head that pulses between deep gold and bright white-gold
+      const t2 = Date.now()/400;
+      const l = 55 + Math.sin(t2)*15;
+      return `hsl(45,100%,${l}%)`;
+    },
     body:   (t,i)=>{
-      // alternating gold/dark-gold scales pattern
-      const scale = Math.floor(i/2)%2===0;
-      const base = scale ? [255,215,0] : [218,165,32];
-      return `rgba(${base[0]},${base[1]},${base[2]},${1-t*0.4})`;
+      // rich alternating scales: bright gold / dark amber, with time shimmer
+      const shimmer = Math.sin(Date.now()/300 + i*0.4) * 0.5 + 0.5;
+      const even = Math.floor(i/2)%2===0;
+      // even segments: bright gold with shimmer highlight
+      // odd segments: deep amber-brown
+      if (even) {
+        const r = Math.round(255);
+        const g = Math.round(180 + shimmer*35);
+        const b = Math.round(0 + shimmer*20);
+        return `rgba(${r},${g},${b},${1-t*0.35})`;
+      } else {
+        const r = Math.round(180 + shimmer*20);
+        const g = Math.round(120 + shimmer*20);
+        const b = 0;
+        return `rgba(${r},${g},${b},${1-t*0.4})`;
+      }
     },
     glow:   '#ffd700',
-    blur:   32,
-    special: true,
-  },
-  // 100+ (invincible mode): CHINESE DRAGON 🐉
-  { // triggered by score>=100 in current cycle
-    name: 'CHINESE DRAGON',
-    head:   ()=>`hsl(${(Date.now()/4)%360},100%,55%)`,
-    body:   (t,i)=>{
-      const hue = ((Date.now()/4) + i*18) % 360;
-      return `hsla(${hue},100%,50%,${1-t*0.3})`;
-    },
-    glow:   '#ff0040',
-    blur:   36,
-    special: 'dragon',
+    blur:   38,
+    special: 'golden_boa',
   },
 ];
 
 function getSnakeTier(localScore) {
-  if (localScore >= 100) return SNAKE_TIERS[11];
+  if (localScore >= 100) return SNAKE_TIERS[10]; // golden boa
   return SNAKE_TIERS[Math.floor(localScore / 10)];
 }
 
@@ -825,7 +926,7 @@ function activateInvincible() {
   puInvincible.classList.add('active');
 }
 function isGhost()      { return Date.now() < ghostEndTs; }
-function isInvincible() { return Date.now() < invincibleEndTs || (getSnakeTier(score).special === 'dragon'); }
+function isInvincible() { return Date.now() < invincibleEndTs || (getSnakeTier(score).special === 'golden_boa'); }
 
 function updatePowerupBars() {
   const now = Date.now();
@@ -834,9 +935,9 @@ function updatePowerupBars() {
   puTransBar.style.width = (gr * 100) + '%';
   puInvBar.style.width   = (ir * 100) + '%';
   if (gr <= 0) puGhost.classList.remove('active');
-  if (ir <= 0 && getSnakeTier(score).special !== 'dragon') puInvincible.classList.remove('active');
-  // dragon always shows invincible bar as full + pulsing
-  if (getSnakeTier(score).special === 'dragon') {
+  if (ir <= 0 && getSnakeTier(score).special !== 'golden_boa') puInvincible.classList.remove('active');
+  // golden boa always shows invincible bar as full + pulsing
+  if (getSnakeTier(score).special === 'golden_boa') {
     puInvincible.classList.add('active');
     puInvBar.style.width = '100%';
   }
@@ -845,23 +946,27 @@ function updatePowerupBars() {
 
 function playTierUp(special) {
   const ac = getAC();
-  let freqs, wave, dur, vol;
-  if (special === 'dragon') {
-    // dramatic descending roar + rising fanfare
-    freqs = [80,100,150,200,400,600,800,1000,1200,1500];
-    wave = 'sawtooth'; dur = 0.25; vol = 0.14;
-  } else if (special === true) {
-    freqs = [523,659,784,1047,1319,1568,2093];
-    wave = 'sine'; dur = 0.35; vol = 0.18;
+  let freqs, wave, dur, vol, spacing;
+  if (special === 'golden_boa') {
+    // Royal golden fanfare — majestic ascending
+    freqs = [392,523,659,784,1047,1319,1568,2093];
+    wave = 'sine'; dur = 0.4; vol = 0.18; spacing = 0.1;
+    // extra low boom
+    [100,150].forEach((f,i) => {
+      const o=ac.createOscillator(), g=ac.createGain();
+      o.type='sawtooth'; o.frequency.value=f;
+      const t=ac.currentTime+i*0.08;
+      g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+      o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+0.3);
+    });
   } else {
     freqs = [400,500,600,800];
-    wave = 'square'; dur = 0.15; vol = 0.12;
+    wave = 'square'; dur = 0.15; vol = 0.12; spacing = 0.07;
   }
   freqs.forEach((freq,i) => {
     const osc = ac.createOscillator(), g = ac.createGain();
-    osc.type = wave;
-    osc.frequency.value = freq;
-    const t = ac.currentTime + i*(special==='dragon'?0.06:special?0.1:0.07);
+    osc.type = wave; osc.frequency.value = freq;
+    const t = ac.currentTime + i * spacing;
     g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     osc.connect(g); g.connect(ac.destination);
@@ -871,18 +976,12 @@ function playTierUp(special) {
 
 function showTierBanner(name, special) {
   const el = document.getElementById('tier-banner');
-  if (special === 'dragon') {
-    el.textContent = '🐉 CHINESE DRAGON 🐉';
-    el.style.color = '#ff4040';
-    el.style.textShadow = '0 0 12px #ff0000, 0 0 40px #ff000080, 0 0 80px #ff040040';
-    el.style.fontSize = '20px';
-    el.style.letterSpacing = '4px';
-  } else if (special === true) {
+  if (special === 'golden_boa') {
     el.textContent = '🐍 GOLDEN BOA 🐍';
     el.style.color = '#ffd700';
-    el.style.textShadow = '0 0 10px #ffd700, 0 0 30px #ffd70080, 0 0 60px #ffd70040';
-    el.style.fontSize = '';
-    el.style.letterSpacing = '';
+    el.style.textShadow = '0 0 14px #ffd700, 0 0 40px #ffaa0080, 0 0 80px #ffd70040, 0 0 120px #ff880020';
+    el.style.fontSize = '22px';
+    el.style.letterSpacing = '5px';
   } else {
     el.textContent = `// ${name}`;
     el.style.color = 'var(--neon-cyan)';
@@ -916,14 +1015,14 @@ const livesWrap    = document.getElementById('lives-wrap');
 const LEVELS = [
   { name:'AWAKENING',  obstacles:()=>[], speed:130 },
   { name:'GRID ECHO',  obstacles:(C,R)=>border4corners(C,R,3), speed:125 },
-  { name:'STATIC',     obstacles:(C,R)=>crossWalls(C,R,4), speed:120 },
-  { name:'LABYRINTH',  obstacles:(C,R)=>[...crossWalls(C,R,5),...boxes(C,R,2)], speed:115 },
-  { name:'FRACTURE',   obstacles:(C,R)=>[...crossWalls(C,R,6),...zigzag(C,R,1)], speed:110 },
-  { name:'VORTEX',     obstacles:(C,R)=>[...crossWalls(C,R,7),...zigzag(C,R,2),...boxes(C,R,3)], speed:105 },
-  { name:'NEXUS',      obstacles:(C,R)=>[...crossWalls(C,R,8),...zigzag(C,R,3),...boxes(C,R,4)], speed:100 },
-  { name:'PURGATORY',  obstacles:(C,R)=>[...crossWalls(C,R,9),...zigzag(C,R,4),...boxes(C,R,5)], speed:95 },
-  { name:'PHANTOM',    obstacles:(C,R)=>[...crossWalls(C,R,10),...zigzag(C,R,5),...boxes(C,R,6)], speed:90 },
-  { name:'OBLIVION',   obstacles:(C,R)=>[...crossWalls(C,R,12),...zigzag(C,R,6),...boxes(C,R,7)], speed:85 },
+  { name:'STATIC',     obstacles:(C,R)=>crossWalls(C,R,3), speed:122 },       // LV3 — was 4, 120
+  { name:'LABYRINTH',  obstacles:(C,R)=>[...crossWalls(C,R,3),...boxes(C,R,1)], speed:118 }, // LV4
+  { name:'FRACTURE',   obstacles:(C,R)=>[...crossWalls(C,R,4),...zigzag(C,R,1)], speed:114 },// LV5
+  { name:'VORTEX',     obstacles:(C,R)=>[...crossWalls(C,R,4),...zigzag(C,R,1),...boxes(C,R,2)], speed:110 }, // LV6
+  { name:'NEXUS',      obstacles:(C,R)=>[...crossWalls(C,R,5),...zigzag(C,R,2),...boxes(C,R,2)], speed:106 }, // LV7
+  { name:'PURGATORY',  obstacles:(C,R)=>[...crossWalls(C,R,5),...zigzag(C,R,2),...boxes(C,R,3)], speed:102 }, // LV8
+  { name:'PHANTOM',    obstacles:(C,R)=>[...crossWalls(C,R,6),...zigzag(C,R,3),...boxes(C,R,3)], speed:98 },  // LV9
+  { name:'OBLIVION',   obstacles:(C,R)=>[...crossWalls(C,R,7),...zigzag(C,R,3),...boxes(C,R,4)], speed:94 }, // LV10
 ];
 const GOAL_PER_LEVEL = 120;
 const MAX_LIVES = 5;
@@ -1317,10 +1416,9 @@ function draw() {
   // tier flash overlay
   if (tierFlash > 0) {
     const tf = tierFlash / 30;
-    if (tier.special === 'dragon')
-      ctx.fillStyle = `rgba(255,0,60,${tf*0.22})`;
-    else if (tier.special === true)
-      ctx.fillStyle = `rgba(255,215,0,${tf*0.18})`;
+    if (tier.special === 'golden_boa')
+      ctx.fillStyle = `rgba(255,200,0,${tf*0.22})`;
+    // (golden_boa is the only special now)
     else
       ctx.fillStyle = `rgba(0,255,231,${tf*0.12})`;
     ctx.fillRect(0,0,W,H);
@@ -1328,7 +1426,7 @@ function draw() {
   }
 
   // invincible pulse border overlay
-  if (inv && tier.special !== 'dragon') {
+  if (inv) {
     const p = 0.5 + 0.5*Math.sin(Date.now()/80);
     ctx.strokeStyle = `rgba(255,215,0,${0.5+p*0.4})`;
     ctx.lineWidth = 3;
@@ -1344,14 +1442,27 @@ function draw() {
     ctx.fillRect(0,0,W,H);
   }
 
-  // dragon mode — red vignette
-  if (tier.special === 'dragon') {
-    const dp = 0.5 + 0.5*Math.sin(Date.now()/120);
-    const dg = ctx.createRadialGradient(W/2,H/2,W*0.2,W/2,H/2,W*0.7);
+  // golden boa mode — shimmering gold vignette
+  if (tier.special === 'golden_boa') {
+    const dp = 0.5 + 0.5*Math.sin(Date.now()/200);
+    const dg = ctx.createRadialGradient(W/2,H/2,W*0.15,W/2,H/2,W*0.72);
     dg.addColorStop(0, 'rgba(0,0,0,0)');
-    dg.addColorStop(1, `rgba(255,0,0,${dp*0.18})`);
+    dg.addColorStop(0.6, `rgba(180,120,0,${dp*0.08})`);
+    dg.addColorStop(1, `rgba(255,180,0,${dp*0.22})`);
     ctx.fillStyle = dg;
     ctx.fillRect(0,0,W,H);
+    // golden sparkle particles on border
+    const now2 = Date.now();
+    for (let sp=0; sp<6; sp++) {
+      const ang = (now2/600 + sp/6) * Math.PI*2;
+      const rx = W/2 + (W/2-4)*Math.cos(ang), ry = H/2 + (H/2-4)*Math.sin(ang);
+      const alpha = 0.4 + 0.4*Math.sin(now2/150 + sp);
+      ctx.beginPath(); ctx.arc(rx, ry, 3, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,215,0,${alpha})`;
+      ctx.shadowColor='#ffd700'; ctx.shadowBlur=10;
+      ctx.fill();
+    }
+    ctx.shadowBlur=0;
   }
 
   snake.forEach((seg,i) => {
@@ -1376,34 +1487,46 @@ function draw() {
       return;
     }
 
-    // dragon mode: full rainbow animated
-    if (tier.special === 'dragon') {
-      const hue = ((Date.now()/3) + i*15) % 360;
-      ctx.shadowColor = `hsl(${hue},100%,60%)`; ctx.shadowBlur = isHead ? 30 : 14;
-      ctx.fillStyle = `hsla(${hue},100%,55%,${1-t*0.3})`;
+    // golden boa mode — spectacular shimmering scales
+    if (tier.special === 'golden_boa') {
+      const shimmer = Math.sin(Date.now()/250 + i*0.5) * 0.5 + 0.5;
+      const pulse   = Math.sin(Date.now()/180 + i*0.3) * 0.5 + 0.5;
+      const even    = Math.floor(i/2)%2===0;
+      const r = even ? 255 : Math.round(200 + shimmer*30);
+      const g = even ? Math.round(165 + shimmer*50) : Math.round(100 + shimmer*40);
+      const b = even ? 0 : 0;
+      ctx.shadowColor = even ? `rgba(255,215,0,${0.6+pulse*0.4})` : '#b8860b';
+      ctx.shadowBlur  = isHead ? 28 : (even ? 10 : 6);
+      ctx.fillStyle = `rgba(${r},${g},${b},${1-t*0.3})`;
       ctx.fillRect(bx,by,bw,bh);
-      // dragon scale lines
-      ctx.strokeStyle = `hsla(${(hue+40)%360},100%,80%,0.4)`;
-      ctx.lineWidth = 0.8;
+      // shimmering scale highlight
+      if (even) {
+        ctx.globalAlpha = 0.25 + shimmer*0.35;
+        ctx.fillStyle = `rgba(255,255,200,1)`;
+        ctx.fillRect(bx+1, by+1, bw*0.55, bh*0.42);
+        ctx.globalAlpha = 1;
+      }
+      // scale border lines
+      ctx.strokeStyle = `rgba(180,120,0,0.5)`;
+      ctx.lineWidth = 0.7;
       ctx.beginPath();
-      ctx.moveTo(bx,by+bh/2); ctx.lineTo(bx+bw,by+bh/2);
-      ctx.moveTo(bx+bw/2,by); ctx.lineTo(bx+bw/2,by+bh);
+      ctx.moveTo(bx, by+bh/2); ctx.lineTo(bx+bw, by+bh/2);
       ctx.stroke();
       if (isHead) {
         ctx.shadowBlur=0;
-        ctx.fillStyle='rgba(255,255,255,0.3)';
-        ctx.fillRect(bx+2,by+2,bw*0.45,bh*0.3);
-        // eyes
-        ctx.fillStyle='#ff0'; ctx.shadowColor='#ff0'; ctx.shadowBlur=6;
-        ctx.fillRect(bx+bw*0.25-1, by+bh*0.28, 3, 3);
-        ctx.fillRect(bx+bw*0.72-1, by+bh*0.28, 3, 3);
+        ctx.fillStyle='rgba(255,255,200,0.4)';
+        ctx.fillRect(bx+2,by+2,bw*0.5,bh*0.35);
+        // golden eyes
+        ctx.fillStyle='#00ffff'; ctx.shadowColor='#00ffff'; ctx.shadowBlur=8;
+        ctx.beginPath(); ctx.arc(bx+bw*0.28, by+bh*0.35, 2.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(bx+bw*0.72, by+bh*0.35, 2.5, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur=0;
       }
       return;
     }
 
-    // golden boa
-    if (tier.special === true) {
+    // golden boa (fallback, should not be reached)
+    if (tier.special === 'golden_boa_fallback') {
       const scaleColor = Math.floor(i/2)%2===0 ? '#ffd700' : '#b8860b';
       ctx.fillStyle = scaleColor;
       ctx.shadowColor = '#ffd700';
@@ -1480,6 +1603,10 @@ function levelClearScreen() {
   alive=false;
   clearInterval(gameLoop);
   playLevelClear();
+  // clear power-ups from previous level
+  ghostEndTs=0; invincibleEndTs=0;
+  puGhost.classList.remove('active');
+  puInvincible.classList.remove('active');
   const nextLv=currentLevel+1;
   if(nextLv>=LEVELS.length) {
     // beat all levels
@@ -1625,7 +1752,20 @@ document.addEventListener('keydown', e => {
   if (e.key === ' ' || e.key === 'Escape') { e.preventDefault(); togglePause(); }
 });
 
-// ── D-pad removed — swipe + keyboard only ────────────────────────────
+// ── D-pad button listeners ───────────────────────────────────────────
+const DMAP2 = {up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+['dp-up','dp-down','dp-left','dp-right'].forEach(id => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const dirKey = id.replace('dp-','');
+  const press   = () => { resumeAC(); if (!paused) applyDir(DMAP2[dirKey]); btn.classList.add('pressed'); };
+  const release = () => btn.classList.remove('pressed');
+  btn.addEventListener('touchstart', e=>{ e.preventDefault(); press(); }, {passive:false});
+  btn.addEventListener('touchend',   e=>{ e.preventDefault(); release(); }, {passive:false});
+  btn.addEventListener('mousedown',  press);
+  btn.addEventListener('mouseup',    release);
+  btn.addEventListener('mouseleave', release);
+});
 
 // ── Touch controls: swipe + tap-relative-to-snake-head ───────────────
 let tx=0, ty=0, tMoved=false;
@@ -1695,5 +1835,25 @@ snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
 ctx.fillStyle='#030810'; ctx.fillRect(0,0,canvas.width,canvas.height);
 updateHUD();
 </script>
+<div id="dpad-wrap">
+  <div id="dpad">
+    <!-- UP -->
+    <button class="dp-btn" id="dp-up" data-dir="up">
+      <svg viewBox="0 0 24 24"><path d="M12 4l-9 10h18z"/></svg>
+    </button>
+    <!-- DOWN -->
+    <button class="dp-btn" id="dp-down" data-dir="down">
+      <svg viewBox="0 0 24 24"><path d="M12 20l9-10H3z"/></svg>
+    </button>
+    <!-- LEFT -->
+    <button class="dp-btn" id="dp-left" data-dir="left">
+      <svg viewBox="0 0 24 24"><path d="M4 12l10-9v18z"/></svg>
+    </button>
+    <!-- RIGHT -->
+    <button class="dp-btn" id="dp-right" data-dir="right">
+      <svg viewBox="0 0 24 24"><path d="M20 12l-10 9V3z"/></svg>
+    </button>
+  </div>
+</div>
 </body>
 </html>
