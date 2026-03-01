@@ -519,6 +519,27 @@ canvas {
 
 
 
+<div id="dpad-wrap">
+  <div id="dpad">
+    <!-- UP -->
+    <button class="dp-btn" id="dp-up" data-dir="up">
+      <svg viewBox="0 0 24 24"><path d="M12 4l-9 10h18z"/></svg>
+    </button>
+    <!-- DOWN -->
+    <button class="dp-btn" id="dp-down" data-dir="down">
+      <svg viewBox="0 0 24 24"><path d="M12 20l9-10H3z"/></svg>
+    </button>
+    <!-- LEFT -->
+    <button class="dp-btn" id="dp-left" data-dir="left">
+      <svg viewBox="0 0 24 24"><path d="M4 12l10-9v18z"/></svg>
+    </button>
+    <!-- RIGHT -->
+    <button class="dp-btn" id="dp-right" data-dir="right">
+      <svg viewBox="0 0 24 24"><path d="M20 12l-10 9V3z"/></svg>
+    </button>
+  </div>
+</div>
+
 <script>
 // ── Particle background ───────────────────────────────────────────────
 const pc = document.getElementById('particles');
@@ -1245,7 +1266,7 @@ function update() {
       showTierBanner('INVINCIBLE', false);
     }
     // tier change? (based on score within current level cycle)
-    const newTierIdx = score>=100 ? 11 : Math.floor(score/10);
+    const newTierIdx = score>=100 ? 10 : Math.floor(score/10);
     if (newTierIdx !== lastTier) {
       lastTier = newTierIdx;
       const tier = SNAKE_TIERS[newTierIdx];
@@ -1835,25 +1856,5 @@ snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
 ctx.fillStyle='#030810'; ctx.fillRect(0,0,canvas.width,canvas.height);
 updateHUD();
 </script>
-<div id="dpad-wrap">
-  <div id="dpad">
-    <!-- UP -->
-    <button class="dp-btn" id="dp-up" data-dir="up">
-      <svg viewBox="0 0 24 24"><path d="M12 4l-9 10h18z"/></svg>
-    </button>
-    <!-- DOWN -->
-    <button class="dp-btn" id="dp-down" data-dir="down">
-      <svg viewBox="0 0 24 24"><path d="M12 20l9-10H3z"/></svg>
-    </button>
-    <!-- LEFT -->
-    <button class="dp-btn" id="dp-left" data-dir="left">
-      <svg viewBox="0 0 24 24"><path d="M4 12l10-9v18z"/></svg>
-    </button>
-    <!-- RIGHT -->
-    <button class="dp-btn" id="dp-right" data-dir="right">
-      <svg viewBox="0 0 24 24"><path d="M20 12l-10 9V3z"/></svg>
-    </button>
-  </div>
-</div>
 </body>
 </html>
