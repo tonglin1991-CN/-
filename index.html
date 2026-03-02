@@ -325,10 +325,10 @@ canvas {
 /* ── Power-up status bars ── */
 #powerup-bar {
   position: fixed;
-  bottom: max(env(safe-area-inset-bottom,0px), 10px);
-  left: 10px;
-  display: flex; gap: 8px; align-items: flex-end;
+  /* top and left set by JS to sit just above the canvas */
+  display: flex; gap: 8px; align-items: center;
   z-index: 60; pointer-events: none;
+  transform: translateX(-50%);
 }
 .pu-item {
   display: flex; align-items: center; gap: 4px;
@@ -739,6 +739,12 @@ function resizeCanvas() {
   // vertically centre in available space
   const topPos = headerH + Math.max(0, Math.floor((availH - size) / 2));
   canvasWrap.style.top = topPos + 'px';
+  // position powerup-bar just above canvas, horizontally centred
+  const puBar = document.getElementById('powerup-bar');
+  if (puBar) {
+    puBar.style.top  = Math.max(headerH + 4, topPos - 28) + 'px';
+    puBar.style.left = (W / 2) + 'px';
+  }
 }
 resizeCanvas();
 
@@ -1256,7 +1262,8 @@ function initSnake() {
 
 function initLevel(lvlIdx, resetLives) {
   buildLevel(lvlIdx);
-  if(resetLives) { lives=MAX_LIVES; score=0; }
+  lives=MAX_LIVES;
+  if(resetLives) { score=0; }
   levelScore=0;
   alive=true;
   lastTier=-1; tierFlash=0;
@@ -1776,7 +1783,8 @@ function die() {
       playGhostActivate();
       showTierBanner('⚡ RESPAWN', false);
       alive = true;
-      // restart both loops
+      // restart BGM and both loops
+      startBGM(currentLevel);
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(gameRaf);
       clearInterval(gameLoop);
