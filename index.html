@@ -360,16 +360,17 @@ canvas {
 #dpad-wrap {
   position: fixed;
   bottom: max(env(safe-area-inset-bottom,0px), 2px);
-  left: 0; right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 50;
   pointer-events: none;
-  /* height set by JS */
+  /* width/height set by JS */
 }
 #dpad {
   position: relative;
   margin: 0 auto;
   pointer-events: all;
-  border-radius: 24px;
+  border-radius: 20px;
   overflow: hidden;
   background: rgba(0,255,231,0.025);
   border: 1px solid rgba(0,255,231,0.12);
@@ -403,6 +404,30 @@ canvas {
     linear-gradient(to bottom right, transparent calc(50% - 0.7px), rgba(0,255,231,0.22) calc(50% - 0.7px), rgba(0,255,231,0.22) calc(50% + 0.7px), transparent calc(50% + 0.7px)),
     linear-gradient(to bottom left,  transparent calc(50% - 0.7px), rgba(0,255,231,0.22) calc(50% - 0.7px), rgba(0,255,231,0.22) calc(50% + 0.7px), transparent calc(50% + 0.7px));
   pointer-events: none; z-index: 3;
+}
+
+/* ── Game instructions on start screen ── */
+.game-instructions {
+  margin-top: 4px;
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: 280px;
+  padding: 0 8px;
+}
+.instr-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+  color: rgba(0,255,231,0.5);
+  text-align: left;
+}
+.instr-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: -1px;
+}
+.instr-item span:last-child {
+  opacity: 0.85;
 }
 
 /* ── Particle canvas ── */
@@ -492,6 +517,24 @@ canvas {
       FINAL&nbsp;&nbsp;<span id="final-val">0</span>
     </div>
     <button class="start-btn" id="start-btn">[ START ]</button>
+    <div class="game-instructions">
+      <div class="instr-item">
+        <span class="instr-icon">🔴</span>
+        <span>红色食物为随机 1–8 分，吃到后获得 1 秒无敌</span>
+      </div>
+      <div class="instr-item">
+        <span class="instr-icon">🏆</span>
+        <span>游戏共 10 关，每关获得 120 分即可通关</span>
+      </div>
+      <div class="instr-item">
+        <span class="instr-icon">🐍</span>
+        <span>每关累计 100 分后进入无敌状态：可穿越自身，遇障碍物直接撞碎</span>
+      </div>
+      <div class="instr-item">
+        <span class="instr-icon">👻</span>
+        <span>死亡后复活获得 3 秒无敌保护</span>
+      </div>
+    </div>
   </div>
   <div id="level-clear">
     <div class="lc-title" id="lc-title">STAGE CLEAR</div>
@@ -593,51 +636,96 @@ function resizeCanvas() {
   ) || 0;
   const bottomGap = Math.max(safeB, 2);
 
-  // ── D-pad: square, fills full screen width up to 320px ──
-  const dpadSize = Math.min(W, 320);
+  // ── D-pad: full width rectangle, height = width/2 ──
+  // Layout: W × (W/2), each btn is the full rectangle clipped to its wedge.
+  // All 4 wedges meet at the centre point (cx, cy).
+  // The diagonals go from corner to corner through centre → equal-area trapezoids.
+  //
+  //   ┌──────────────────────────┐
+  //   │╲          UP           ╱│
+  //   │  ╲                   ╱  │
+  //   │LEFT ╲     ╱╲       ╱ RIGHT│
+  //   │       ╲  ╱  ╲    ╱      │
+  //   │        ╲╱    ╲  ╱       │
+  //   │         ╱╲    ╲╱        │
+  //   │       ╱    ╲  ╱╲        │
+  //   │     ╱  DOWN  ╲  ╲       │
+  //   └──────────────────────────┘
+
+  const dW = Math.min(W, 480);          // dpad width (full screen up to 480)
+  const dH = Math.round(dW * 0.5);      // dpad height = half width
   const dpadWrap = document.getElementById('dpad-wrap');
   const dpadEl   = document.getElementById('dpad');
-  dpadEl.style.width  = dpadSize + 'px';
-  dpadEl.style.height = dpadSize + 'px';
-  dpadWrap.style.height = (dpadSize + bottomGap) + 'px';
+  dpadEl.style.width  = dW + 'px';
+  dpadEl.style.height = dH + 'px';
+  dpadWrap.style.width  = dW + 'px';
+  dpadWrap.style.height = (dH + bottomGap) + 'px';
 
-  // Wedge clip-paths centred in the square
-  const S = dpadSize;
-  const cx = S/2, cy = S/2;
-  const inset = S * 0.30; // inner trapezoid edge distance from centre
-  const svgSz = Math.round(S * 0.19);
+  // Centre point
+  const cx = dW / 2, cy = dH / 2;
+
+  // Each button is full dW × dH, clipped to its diagonal wedge.
+  // Diagonals: top-left→bottom-right and top-right→bottom-left cross at (cx,cy).
+  // That gives 4 equal triangular wedges. We then keep full corners per wedge.
+  //
+  // UP    = top half of X  (top-left corner + top-right corner + centre)
+  // DOWN  = bottom half     (bottom-left + bottom-right + centre)
+  // LEFT  = left half       (top-left + bottom-left + centre)
+  // RIGHT = right half      (top-right + bottom-right + centre)
+  //
+  // But pure triangles look odd — use the "arrow" trapezoid style instead:
+  // Each wedge covers its full edge + tapers to the centre zone, with a small
+  // dead-zone hexagon at the very centre (covered by nothing = just visual gap).
+
+  const svgSz = Math.round(Math.min(dW, dH) * 0.22);
+
+  // Wedge definitions: clip polygon + icon visual centre
+  // Points are in "dW x dH" space.
+  // Taper: corners of each side go to centre ± (tapX, tapY)
+  const tapX = dW * 0.08;   // horizontal taper at centre
+  const tapY = dH * 0.18;   // vertical taper at centre
+
+  const D = { dW, dH, cx, cy, tapX, tapY };
+
   const wedges = {
-    'dp-up':    {
-      clip:`polygon(0 0,${S}px 0,${cx+inset}px ${cy-inset}px,${cx-inset}px ${cy-inset}px)`,
-      sx: cx - svgSz/2, sy: cy*0.28
+    'dp-up': {
+      // Top edge → taper to centre-top band
+      clip: `polygon(0 0, ${dW}px 0, ${cx+tapX}px ${cy-tapY}px, ${cx-tapX}px ${cy-tapY}px)`,
+      // Icon centred horizontally, in upper 40% of its wedge vertically
+      ix: cx, iy: (cy - tapY) * 0.45,
     },
-    'dp-down':  {
-      clip:`polygon(${cx-inset}px ${cy+inset}px,${cx+inset}px ${cy+inset}px,${S}px ${S}px,0 ${S}px)`,
-      sx: cx - svgSz/2, sy: cy + cy*0.53
+    'dp-down': {
+      clip: `polygon(${cx-tapX}px ${cy+tapY}px, ${cx+tapX}px ${cy+tapY}px, ${dW}px ${dH}px, 0 ${dH}px)`,
+      ix: cx, iy: cy + tapY + (dH - cy - tapY) * 0.55,
     },
-    'dp-left':  {
-      clip:`polygon(0 0,${cx-inset}px ${cy-inset}px,${cx-inset}px ${cy+inset}px,0 ${S}px)`,
-      sx: cx*0.22, sy: cy - svgSz/2
+    'dp-left': {
+      clip: `polygon(0 0, ${cx-tapX}px ${cy-tapY}px, ${cx-tapX}px ${cy+tapY}px, 0 ${dH}px)`,
+      ix: (cx - tapX) * 0.38, iy: cy,
     },
     'dp-right': {
-      clip:`polygon(${cx+inset}px ${cy-inset}px,${S}px 0,${S}px ${S}px,${cx+inset}px ${cy+inset}px)`,
-      sx: cx + cx*0.61, sy: cy - svgSz/2
+      clip: `polygon(${cx+tapX}px ${cy-tapY}px, ${dW}px 0, ${dW}px ${dH}px, ${cx+tapX}px ${cy+tapY}px)`,
+      ix: cx + tapX + (dW - cx - tapX) * 0.62, iy: cy,
     },
   };
+
   Object.entries(wedges).forEach(([id, w]) => {
     const btn = document.getElementById(id);
-    btn.style.width      = S + 'px';
-    btn.style.height     = S + 'px';
-    btn.style.clipPath   = w.clip;
+    if (!btn) return;
+    btn.style.width    = dW + 'px';
+    btn.style.height   = dH + 'px';
+    btn.style.clipPath = w.clip;
+    btn.style.top = '0';
+    btn.style.left = '0';
     const svg = btn.querySelector('svg');
-    svg.style.width  = svgSz + 'px';
-    svg.style.height = svgSz + 'px';
-    svg.style.left   = w.sx + 'px';
-    svg.style.top    = w.sy + 'px';
+    if (!svg) return;
+    svg.style.width    = svgSz + 'px';
+    svg.style.height   = svgSz + 'px';
+    svg.style.left     = (w.ix - svgSz/2) + 'px';
+    svg.style.top      = (w.iy - svgSz/2) + 'px';
   });
 
   // ── Canvas: fill space between header and dpad ──
-  const dpadH    = dpadSize + bottomGap;
+  const dpadH    = dH + bottomGap;
   const availH   = H - headerH - dpadH;
   const maxSide  = Math.min(W, availH, 900);
   const cells    = Math.floor(maxSide / CELL);
@@ -917,7 +1005,8 @@ const SNAKE_TIERS = [
 
 function getSnakeTier(localScore) {
   if (localScore >= 100) return SNAKE_TIERS[10]; // golden boa
-  return SNAKE_TIERS[Math.floor(localScore / 10)];
+  const idx = Math.min(Math.floor(localScore / 10), 9);
+  return SNAKE_TIERS[idx];
 }
 
 let lastTier = -1;
@@ -930,8 +1019,8 @@ let tierLabel = '';
 let ghostTime = 0, invincibleTime = 0;
 let ghostMax = 5, invincibleMax = 1;
 const GHOST_DURATION = 5000;    // ms
-const INVINCIBLE_DURATION = 1000; // ms
-let ghostEndTs = 0, invincibleEndTs = 0;
+const INVINCIBLE_DURATION = 1000; // ms (red food); respawn uses 3000ms directly
+let ghostEndTs = 0, invincibleEndTs = 0, invincibleTotalDuration = 0;
 
 const puGhost      = document.getElementById('pu-ghost');
 const puInvincible = document.getElementById('pu-invincible');
@@ -942,23 +1031,28 @@ function activateGhost() {
   ghostEndTs = Date.now() + GHOST_DURATION;
   puGhost.classList.add('active');
 }
-function activateInvincible() {
-  invincibleEndTs = Date.now() + INVINCIBLE_DURATION;
+function activateInvincible(ms) {
+  const dur = ms || INVINCIBLE_DURATION;
+  invincibleEndTs = Date.now() + dur;
+  invincibleTotalDuration = dur;
   puInvincible.classList.add('active');
 }
 function isGhost()      { return Date.now() < ghostEndTs; }
-function isInvincible() { return Date.now() < invincibleEndTs || (getSnakeTier(score).special === 'golden_boa'); }
+function isInvincible() { return Date.now() < invincibleEndTs || (getSnakeTier(levelScore).special === 'golden_boa'); }
 
 function updatePowerupBars() {
   const now = Date.now();
   const gr = Math.max(0, ghostEndTs - now) / GHOST_DURATION;
-  const ir = Math.max(0, invincibleEndTs - now) / INVINCIBLE_DURATION;
+  // invincible bar: use actual total duration stored at activation
+  const ir = invincibleTotalDuration > 0
+    ? Math.max(0, invincibleEndTs - now) / invincibleTotalDuration
+    : 0;
   puTransBar.style.width = (gr * 100) + '%';
   puInvBar.style.width   = (ir * 100) + '%';
   if (gr <= 0) puGhost.classList.remove('active');
-  if (ir <= 0 && getSnakeTier(score).special !== 'golden_boa') puInvincible.classList.remove('active');
+  if (ir <= 0 && getSnakeTier(levelScore).special !== 'golden_boa') puInvincible.classList.remove('active');
   // golden boa always shows invincible bar as full + pulsing
-  if (getSnakeTier(score).special === 'golden_boa') {
+  if (getSnakeTier(levelScore).special === 'golden_boa') {
     puInvincible.classList.add('active');
     puInvBar.style.width = '100%';
   }
@@ -1167,16 +1261,16 @@ function initLevel(lvlIdx, resetLives) {
   alive=true;
   lastTier=-1; tierFlash=0;
   eatFlash=0; deathShake=0; foodPulse=0;
-  // reset tier color cycle each level
   score = resetLives ? 0 : score;
   scoreEl.textContent=String(score).padStart(3,'0');
   eatParticles=[];
   scoreLabels=[];
   foods=[];
-  // reset power-ups
+  // reset power-ups and tier visuals every level
   ghostEndTs=0; invincibleEndTs=0;
   puGhost.classList.remove('active');
   puInvincible.classList.remove('active');
+  // always reset snake to 3 segments at start of every level
   initSnake();
   spawnFoods();
   updateHUD();
@@ -1266,7 +1360,7 @@ function update() {
       showTierBanner('INVINCIBLE', false);
     }
     // tier change? (based on score within current level cycle)
-    const newTierIdx = score>=100 ? 10 : Math.floor(score/10);
+    const newTierIdx = levelScore>=100 ? 10 : Math.min(Math.floor(levelScore/10), 9);
     if (newTierIdx !== lastTier) {
       lastTier = newTierIdx;
       const tier = SNAKE_TIERS[newTierIdx];
@@ -1430,7 +1524,7 @@ function draw() {
   ctx.globalAlpha=1;
 
   // snake — tier-aware rendering
-  const tier = getSnakeTier(score);
+  const tier = getSnakeTier(levelScore);
   const inv = isInvincible();
   const gho = isGhost();
 
@@ -1647,6 +1741,7 @@ function levelClearScreen() {
 function die() {
   alive = false;
   clearInterval(gameLoop);
+  cancelAnimationFrame(raf);
   deathShake = 20;
   playDie();
   lives--;
@@ -1654,8 +1749,9 @@ function die() {
   ghostEndTs = 0; invincibleEndTs = 0;
   puGhost.classList.remove('active');
   puInvincible.classList.remove('active');
-  raf = requestAnimationFrame(gameRaf);
   updateHUD();
+  // keep rendering death shake animation
+  raf = requestAnimationFrame(gameRaf);
   setTimeout(()=>{
     if(lives<=0) {
       // game over
@@ -1665,18 +1761,28 @@ function die() {
       startBtn.textContent = '[ RETRY ]';
       overlay.style.display = 'flex';
     } else {
-      // respawn on same level — grant 5s ghost
-      initSnake();
-      spawnFoods();
-      alive=true;
-      eatParticles=[];
-      activateGhost();
+      // respawn: keep exact snake length, reset position to centre, facing right
+      const snakeLen = snake.length;
+      const mid = Math.floor(COLS/2);
+      snake = [];
+      for (let i = 0; i < snakeLen; i++) snake.push({x: mid - i, y: mid});
+      dir = {x:1,y:0}; nextDir = {x:1,y:0};
+      eatParticles = [];
+      deathShake = 0;
+      // 3s invincible on respawn
+      invincibleEndTs = Date.now() + 3000;
+      invincibleTotalDuration = 3000;
+      puInvincible.classList.add('active');
       playGhostActivate();
-      showTierBanner('👻 GHOST MODE', false);
+      showTierBanner('⚡ RESPAWN', false);
+      alive = true;
+      // restart both loops
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(gameRaf);
       clearInterval(gameLoop);
-      gameLoop=setInterval(update, LEVELS[currentLevel].speed);
+      gameLoop = setInterval(update, LEVELS[currentLevel].speed);
     }
-  }, 800);
+  }, 1000);
 }
 
 function startGame(lvlIdx, resetLives) {
